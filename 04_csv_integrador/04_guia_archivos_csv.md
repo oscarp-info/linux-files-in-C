@@ -243,13 +243,27 @@ La variable `cantidad` es fundamental: indica cuántas posiciones del arreglo co
 
 ## 9. El error habitual con punteros y `strtok`
 
-La siguiente asignación parece conveniente, pero no es correcta si se quiere conservar el dato después de leer otra línea:
+Este problema aparece cuando la estructura guarda textos mediante punteros, como en el ejemplo dinámico que sigue:
+
+```c
+typedef struct {
+    int id;
+    char *nombre;
+    char *genero;
+} PERSONA;
+
+PERSONA persona;
+```
+
+En ese caso, la siguiente asignación **compila**, pero no es correcta si se quiere conservar el dato después de leer otra línea:
 
 ```c
 persona.nombre = nombre;
 ```
 
-`nombre` apunta dentro de `linea`. Como `fgets` reutiliza ese mismo buffer para leer la siguiente fila, el contenido apuntado cambia. Al terminar el recorrido, los punteros pueden mostrar la última línea leída o datos que ya no representan a cada persona.
+`nombre` apunta dentro de `linea`, el buffer que `fgets` reutiliza para leer cada fila. La asignación sólo copia la dirección, no copia los caracteres. Cuando se lee la siguiente fila, el contenido apuntado cambia. Al terminar el recorrido, los punteros pueden mostrar la última línea leída o datos que ya no representan a cada persona.
+
+En cambio, en el ejemplo anterior `nombre` está declarado como un arreglo dentro de la estructura (`char nombre[TAM_NOMBRE]`). En ese caso, `persona.nombre = nombre;` directamente no compila: los arreglos no se asignan con `=`. Allí se usa `strncpy` para copiar los caracteres. En el caso dinámico, la solución será reservar y copiar una cadena independiente, como se muestra en el ejemplo siguiente.
 
 ```text
 linea ──┐

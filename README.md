@@ -1,7 +1,7 @@
 # Guías de archivos en C
 
 **Informática 1 · UTN Electrónica**  
-**Lenguaje:** C estándar; la primera guía utiliza además la interfaz POSIX de Linux.
+**Lenguaje:** C estándar; las guías 1 y 5 utilizan además interfaces de POSIX y GNU/Linux.
 
 Este material está organizado en el orden sugerido de cursada. Cada módulo contiene su guía y una carpeta `src` con los programas y archivos de datos necesarios para ejecutarla.
 
@@ -13,6 +13,7 @@ Este material está organizado en el orden sugerido de cursada. Cada módulo con
 | 2 | [Alto nivel: bloques y registros](02_alto_nivel_bloques/02_guia_archivos_alto_nivel_bloques.md) | `FILE *`, `fopen`, `fread`, `fwrite`, `fseek` y `ftell` |
 | 3 | [Alto nivel: archivos de texto](03_alto_nivel_texto/03_guia_archivos_alto_nivel_texto.md) | caracteres, líneas, formatos, `strtok` y conversiones validadas |
 | 4 | [CSV integrador](04_csv_integrador/04_guia_archivos_csv.md) | lectura de CSV simple, estructuras, arreglos y memoria dinámica |
+| 5 | [POSIX avanzado: terminal y E/S](05_posix_avanzado/05_guia_posix_avanzado.md) | E/S bloqueante, `fcntl`, `O_NONBLOCK`, `select` e `ioctl` |
 
 ## Organización de cada módulo
 
@@ -41,7 +42,10 @@ guias_archivos_c/
 ├── 03_alto_nivel_texto/
 │   ├── 03_guia_archivos_alto_nivel_texto.md
 │   └── src/
-└── 04_csv_integrador/
-    ├── 04_guia_archivos_csv.md
+├── 04_csv_integrador/
+│   ├── 04_guia_archivos_csv.md
+│   └── src/
+└── 05_posix_avanzado/
+    ├── 05_guia_posix_avanzado.md
     └── src/
 ```

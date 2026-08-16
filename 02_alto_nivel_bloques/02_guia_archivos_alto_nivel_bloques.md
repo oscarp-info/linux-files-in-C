@@ -28,6 +28,22 @@ FILE *fp;
 
 `fp` no contiene los datos del archivo. Es una referencia que la biblioteca de C utiliza para trabajar con el archivo abierto.
 
+### Archivo y flujo de datos
+
+Un **archivo** es un recurso que guarda datos de manera persistente. Un **flujo** (*stream*) es la secuencia de datos que el programa lee o escribe mientras se está ejecutando. Es decir: el archivo es el recurso; el flujo es la forma en que el programa se comunica con ese recurso.
+
+Cuando `fopen` tiene éxito, la biblioteca de C abre el archivo y asocia un flujo a él. El puntero `FILE *` permite controlar ese flujo con funciones como `fread`, `fwrite`, `fseek` y `fclose`.
+
+Un flujo puede ser de entrada o de salida:
+
+| Tipo de flujo | Dirección de los datos | Ejemplo habitual |
+|---|---|---|
+| entrada | recurso → programa | leer desde un archivo o desde el teclado mediante `stdin` |
+| salida | programa → recurso | escribir en un archivo o mostrar texto mediante `stdout` |
+| errores | programa → diagnóstico | informar un problema mediante `stderr` |
+
+`stdin`, `stdout` y `stderr` son flujos que el programa recibe ya abiertos. Se estudiarán con más detalle en la guía de archivos de texto. Un flujo no tiene por qué estar asociado a un archivo guardado en disco: también puede estar conectado a la terminal u otro recurso.
+
 Las funciones principales de esta guía son:
 
 | Función | Acción | Devuelve |
