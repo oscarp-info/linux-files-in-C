@@ -225,7 +225,13 @@ tamanio = ftell(fp);
 fseek(fp, 0, SEEK_SET);
 ```
 
-> **Portabilidad:** los desplazamientos por cantidad de bytes, como los usados para buscar registros, son apropiados para los archivos de datos de estos ejemplos. Si se trabaja con un archivo de texto y se busca mantener C estándar portable, lo más seguro es volver al inicio con `rewind` o `fseek(fp, 0, SEEK_SET)`, o reposicionarse con una posición obtenida previamente mediante `ftell`.
+> **Portabilidad de las posiciones:** en los ejemplos de búsqueda directa, los registros tienen todos el mismo tamaño. Por eso se puede calcular la posición del registro de índice `i` como `i * sizeof(REGISTRO)` y usarla con `fseek`: se está trabajando con posiciones calculadas a partir de bytes.
+>
+> En un archivo de texto no conviene hacer ese cálculo. Para C estándar portable, no se debe suponer que cada carácter ocupa un byte ni que la posición de un carácter se puede obtener contando bytes. Por ejemplo, al escribir `"Hola\n"`, en GNU/Linux el fin de línea suele ocupar un byte (`\n`), pero en otros sistemas la biblioteca puede guardarlo como dos bytes (`\r\n`). Entonces, cinco caracteres lógicos no necesariamente ocupan cinco bytes en el archivo.
+>
+> En un archivo de texto, el estándar garantiza dos usos sencillos: volver al inicio con `rewind(fp)` o con `fseek(fp, 0, SEEK_SET)`; y regresar a una posición que la biblioteca haya entregado antes con `ftell`. Por ejemplo: `posicion = ftell(fp);` y, más adelante, `fseek(fp, posicion, SEEK_SET);`. Esa posición se reutiliza; no se calcula manualmente.
+>
+> En GNU/Linux, los archivos de texto suelen comportarse como una secuencia directa de bytes, pero esta precaución permite que el programa conserve portabilidad dentro de C estándar.
 
 ---
 
