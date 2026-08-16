@@ -84,8 +84,6 @@ if (fp == NULL) {
 | `"w+"` | abre para lectura y escritura; crea o vacía el archivo |
 | `"a+"` | abre o crea para lectura y agregado al final |
 
-También pueden agregarse las letras `b`, por ejemplo `"rb"` o `"wb"`, para indicar modo binario. En GNU/Linux no suele haber diferencia entre `"w"` y `"wb"`, pero usar `b` deja claro que se guardan los bytes de valores o estructuras y mejora la portabilidad a otros sistemas.
-
 > **Importante:** un archivo abierto con `"r"` no permite escribir. Para usar `fwrite`, se necesita un modo de escritura, como `"w"`, `"a"`, `"w+"` o `"r+"`.
 
 ---
@@ -99,7 +97,7 @@ El objetivo del ejemplo es guardar valores `int` en `database.dat`.
 Para escribir, la apertura debe ser:
 
 ```c
-fp = fopen("database.dat", "wb");
+fp = fopen("database.dat", "w");
 ```
 
 Luego se guardan los enteros con:
@@ -122,7 +120,7 @@ Para inspeccionarlos:
 hexdump -C database.dat
 ```
 
-> El ejemplo abre `database.dat` con `"wb"`: crea el archivo o vacía su contenido anterior antes de guardar los dos enteros.
+> El ejemplo abre `database.dat` con `"w"`: crea el archivo o vacía su contenido anterior antes de guardar los dos enteros.
 
 ---
 
@@ -137,7 +135,7 @@ char data = '1';
 r = fwrite(&data, sizeof(data), 1, fp);
 ```
 
-Como un `char` ocupa un byte, el archivo tendrá un único byte. El modo `"wb"` usado por el ejemplo crea el archivo si no existe y, si existe, descarta su contenido anterior.
+Como un `char` ocupa un byte, el archivo tendrá un único byte. El modo `"w"` usado por el ejemplo crea el archivo si no existe y, si existe, descarta su contenido anterior.
 
 Podés verificarlo con:
 
@@ -225,7 +223,7 @@ tamanio = ftell(fp);
 fseek(fp, 0, SEEK_SET);
 ```
 
-> **Portabilidad:** los desplazamientos por cantidad de bytes, como los usados para buscar registros, corresponden a archivos abiertos en modos como `"rb"` o `"wb"`. Si se trabaja con un archivo de texto y se busca mantener C estándar portable, lo más seguro es volver al inicio con `rewind` o `fseek(fp, 0, SEEK_SET)`, o reposicionarse con una posición obtenida previamente mediante `ftell`.
+> **Portabilidad:** los desplazamientos por cantidad de bytes, como los usados para buscar registros, son apropiados para los archivos de datos de estos ejemplos. Si se trabaja con un archivo de texto y se busca mantener C estándar portable, lo más seguro es volver al inicio con `rewind` o `fseek(fp, 0, SEEK_SET)`, o reposicionarse con una posición obtenida previamente mediante `ftell`.
 
 ---
 

@@ -12,7 +12,7 @@ int main(void)
     size_t bloques;        /* Cantidad de bloques leídos por fread. */
     int i;                 /* Contador de las tres lecturas. */
 
-    fp = fopen("database.dat", "rb");
+    fp = fopen("database.dat", "r");
     if (fp == NULL) {
         perror("No se pudo abrir database.dat");
         return EXIT_FAILURE;

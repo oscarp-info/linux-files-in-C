@@ -11,7 +11,7 @@ int main(void)
     FILE *fp;              /* Referencia al archivo database.dat. */
     size_t bloques;        /* Cantidad de bloques escritos por fwrite. */
 
-    fp = fopen("database.dat", "wb");
+    fp = fopen("database.dat", "w");
     if (fp == NULL) {
         perror("No se pudo crear database.dat");
         return EXIT_FAILURE;

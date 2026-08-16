@@ -34,7 +34,7 @@ static void Escribir(void)
     FILE *fp;                /* Referencia al archivo listado.bin. */
     size_t bloques;          /* Cantidad de registros escritos. */
 
-    fp = fopen("listado.bin", "wb");
+    fp = fopen("listado.bin", "w");
     if (fp == NULL) {
         perror("No se pudo crear listado.bin");
         exit(EXIT_FAILURE);
@@ -60,7 +60,7 @@ static void Leer(void)
     size_t bloques;          /* Cantidad de registros leídos. */
     size_t i;                /* Índice para recorrer el arreglo. */
 
-    fp = fopen("listado.bin", "rb");
+    fp = fopen("listado.bin", "r");
     if (fp == NULL) {
         perror("No se pudo abrir listado.bin");
         exit(EXIT_FAILURE);
@@ -89,7 +89,7 @@ static void BuscarPorId(int id)
     size_t bloques;         /* Cantidad de registros leídos. */
     long posicion;          /* Posición del registro dentro del archivo. */
 
-    fp = fopen("listado.bin", "rb");
+    fp = fopen("listado.bin", "r");
     if (fp == NULL) {
         perror("No se pudo abrir listado.bin");
         exit(EXIT_FAILURE);
