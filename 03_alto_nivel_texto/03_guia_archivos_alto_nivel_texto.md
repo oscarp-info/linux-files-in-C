@@ -65,7 +65,11 @@ int caracter;
 caracter = fgetc(fp);
 ```
 
-La variable debe ser `int`, no `char`, porque además de todos los caracteres posibles `fgetc` necesita poder devolver `EOF` al llegar al final del archivo.
+La variable debe ser `int`, no `char`, porque además de todos los caracteres posibles `fgetc` necesita poder devolver `EOF`.
+
+`EOF` es una constante entera negativa definida en `<stdio.h>`. No es un carácter que esté guardado en el archivo: es un valor especial que usa `fgetc` para indicar que no pudo devolver otro carácter, ya sea porque se llegó al final del archivo o porque ocurrió un error de lectura. Por eso un `char` no alcanza para guardar el resultado: debe poder representar todos los valores de un carácter **y** el valor especial `EOF`.
+
+Si se necesita distinguir entre ambas situaciones después de obtener `EOF`, se consulta `feof(fp)` para saber si se alcanzó el final del archivo y `ferror(fp)` para saber si ocurrió un error.
 
 El patrón correcto de lectura es:
 
@@ -330,7 +334,7 @@ fputs / fgets    → una línea o cadena de texto
 fprintf / fscanf → datos con formato
 "w"              → crea o vacía
 "a"              → agrega al final
-EOF              → final de archivo o indicador de error en algunas funciones
+EOF              → valor especial que `fgetc` devuelve al final o ante un error
 stdout / stderr  → salida normal / mensajes de error
 ```
 
