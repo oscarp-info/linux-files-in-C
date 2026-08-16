@@ -1,0 +1,8 @@
+id,name,gender
+1,Ana,Género A
+2,Bruno,Género B
+sin_id,Carla,Género C
+4,Diego
+5,Elena,Género E,Campo extra
+6,,Género F
+7,Nombre deliberadamente muy largo para comprobar que el programa detecta una fila que supera la capacidad del buffer de lectura y descarta todo el resto de la fila en lugar de interpretarla como dos registros diferentes o de cargar campos incompletos en la estructura que se está construyendo para el ejemplo,Género G
