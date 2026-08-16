@@ -16,6 +16,10 @@ En esta guía se trabajará con archivos mediante las funciones de la biblioteca
 - conocer la posición actual con `ftell`;
 - buscar un registro de tamaño fijo mediante acceso directo.
 
+---
+
+## 2. La interfaz de alto nivel
+
 En esta interfaz, un archivo abierto se representa con un puntero de tipo `FILE *`:
 
 ```c
@@ -23,10 +27,6 @@ FILE *fp;
 ```
 
 `fp` no contiene los datos del archivo. Es una referencia que la biblioteca de C utiliza para trabajar con el archivo abierto.
-
----
-
-## 2. La interfaz de alto nivel
 
 Las funciones principales de esta guía son:
 
@@ -159,12 +159,14 @@ r = fread(&data, sizeof(data), 1, fp);
 
 Cada lectura comienza donde terminó la anterior. Esto es **acceso secuencial**.
 
-`fread` devuelve la cantidad de bloques leídos. Si se pidió un bloque y devuelve `1`, la lectura fue correcta. Si devuelve `0`, puede haberse llegado al final del archivo o haber ocurrido un error. Para distinguir esos casos se usan:
+`fread` devuelve la cantidad de bloques leídos. Si se pidió un bloque y devuelve `1`, la lectura fue correcta. Si devuelve `0`, puede haberse llegado al final del archivo o haber ocurrido un error. Recién después de ese retorno se consulta `feof(fp)` o `ferror(fp)` para distinguir los casos:
 
 ```c
 feof(fp);    /* indica si se llegó al final */
 ferror(fp);  /* indica si ocurrió un error */
 ```
+
+No se debe usar `feof(fp)` como condición de un ciclo: el indicador se activa después de intentar una lectura que ya no pudo obtener datos.
 
 Para probar tres lecturas correctas, preparar el archivo antes de ejecutar el programa:
 
@@ -277,6 +279,50 @@ if (fclose(fp) == EOF) {
 
 Las funciones de alto nivel trabajan mediante una estructura `FILE *` que puede tener buffers internos. `fclose` vacía la información pendiente, libera los recursos asociados y finaliza el uso del archivo.
 
+### Control de errores de lectura y escritura
+
+Las funciones que leen o escriben informan su resultado mediante su valor de retorno. Primero se controla ese valor; sólo si la lectura no entregó los bloques esperados se consulta `feof` o `ferror`:
+
+```c
+size_t leidos;
+
+leidos = fread(&dato, sizeof(dato), 1, fp);
+
+if (leidos == 1) {
+    /* Se leyó un registro. */
+} else if (feof(fp)) {
+    /* Se llegó al final del archivo. */
+} else if (ferror(fp)) {
+    perror("No se pudo leer el archivo");
+}
+```
+
+El mismo criterio se aplica a `fwrite`: se compara la cantidad de bloques escritos con la cantidad solicitada. Nunca se debe usar `while (!feof(fp))` para leer un archivo, porque procesa una iteración adicional después de la última lectura correcta.
+
+### `errno`, `perror` y `strerror`
+
+`errno` es una variable global declarada en `<errno.h>`. Algunas funciones la actualizan con un código que explica el último error; se debe consultar inmediatamente después de una función que documenta ese comportamiento. Para conversiones como `strtol` o `strtof`, se establece antes `errno = 0` y luego se comprueba si cambió.
+
+Para los errores al abrir, leer, escribir o cerrar archivos, `perror` suele ser la opción más simple. Imprime el contexto que se le pasa y el mensaje del sistema asociado a `errno`:
+
+```c
+if (fp == NULL) {
+    perror("No se pudo abrir datos.txt");
+    return EXIT_FAILURE;
+}
+```
+
+`strerror(errno)`, declarada en `<string.h>`, devuelve ese mensaje como texto y permite integrarlo en una salida propia:
+
+```c
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+
+fprintf(stderr, "No se pudo abrir datos.txt: %s\n", strerror(errno));
+```
+
+Para los primeros programas, alcanza con `perror`. `strerror` resulta útil cuando se necesita controlar el formato completo del mensaje.
 ### Buffers y `fflush`
 
 Al escribir mediante `FILE *`, la biblioteca de C puede conservar temporalmente los datos en un **buffer** de memoria antes de enviarlos al archivo. Esto evita muchas escrituras pequeñas y puede mejorar el rendimiento.

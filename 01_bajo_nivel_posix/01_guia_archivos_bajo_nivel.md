@@ -8,7 +8,32 @@
 
 ---
 
-## 1. ¿Por qué archivos?
+## 1. Objetivos
+
+En esta guía se trabajará con la interfaz POSIX de Linux para acceder a archivos. Al finalizar deberías poder:
+
+- abrir un archivo y obtener su descriptor con `open`;
+- elegir banderas adecuadas para leer, escribir, crear, vaciar o agregar datos;
+- guardar y recuperar enteros, texto y estructuras mediante `write` y `read`;
+- recorrer un archivo de forma secuencial y reposicionar su posición con `lseek`;
+- usar los descriptores estándar para leer desde el teclado y escribir en la terminal;
+- comprobar errores y distinguir el final de un archivo de una falla;
+- consultar el tamaño y los permisos de un archivo con `stat`.
+
+Las principales llamadas POSIX de la guía son:
+
+| Función | Acción | Devuelve |
+|---|---|---|
+| `open` | abre y, opcionalmente, crea un archivo | descriptor o `-1` |
+| `write` | escribe bytes | cantidad escrita o `-1` |
+| `read` | lee bytes | cantidad leída, `0` al final o `-1` |
+| `lseek` | cambia o consulta la posición actual | nueva posición o `-1` |
+| `close` | cierra el descriptor | `0` o `-1` |
+| `stat` | consulta metadatos del archivo | `0` o `-1` |
+
+---
+
+## 2. ¿Por qué archivos?
 
 Las variables existen mientras el programa está ejecutándose. Al terminar, sus valores se pierden. Un **archivo** permite guardar información de manera persistente: el programa termina, pero los datos permanecen en el disco.
 
@@ -109,6 +134,34 @@ open("mensaje.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
 solicita permisos `rw-r--r--`. El cero inicial indica que el valor está escrito en octal. El sistema puede restringir esos permisos mediante la configuración `umask`, por lo que los permisos finales nunca serán más amplios que los solicitados.
 
+#### Cambiar permisos con `chmod`
+
+El tercer argumento de `open` se usa al **crear** un archivo. Para cambiar los permisos de un archivo que ya existe desde la terminal se usa `chmod`. Sólo la persona propietaria del archivo, o el administrador del sistema, puede hacerlo.
+
+Primero conviene observar los permisos actuales:
+
+```bash
+ls -l mensaje.txt
+```
+
+Después se puede indicar el valor octal, igual que en `open`:
+
+```bash
+chmod 600 privado.txt   # rw-------: sólo la persona propietaria puede leer y escribir
+chmod 644 mensaje.txt   # rw-r--r--: la persona propietaria escribe; los demás sólo leen
+chmod 755 programa      # rwxr-xr-x: permite ejecutar el programa a todas las personas
+```
+
+También existe una forma simbólica. `u` representa al usuario propietario, `g` al grupo y `o` a otros:
+
+```bash
+chmod u+x programa      # agrega permiso de ejecución al propietario
+chmod go-w informe.txt  # quita permiso de escritura al grupo y a otros
+chmod o+r publico.txt   # agrega permiso de lectura a otros
+```
+
+`chmod` no modifica el contenido del archivo: sólo cambia quién puede leerlo, escribirlo o ejecutarlo. Evitá usar permisos como `777` por costumbre, porque otorgan todos los permisos a cualquier usuario del sistema.
+
 En los directorios, `x` permite entrar o atravesar el directorio; por eso tiene un significado diferente que en los archivos comunes.
 Cada descriptor tiene una **posición actual**: indica desde dónde se hará la próxima lectura o escritura. Al leer o escribir, esa posición avanza.
 
@@ -117,39 +170,9 @@ Archivo:   H  o  l  a  \n
 Posición:                 ^
 ```
 
-### Objetivos
 
-Al finalizar deberías poder crear, abrir, escribir, leer, reposicionar y cerrar un archivo con las llamadas POSIX de Linux.
 
-Las cinco funciones de hoy son:
-
-| Función | Acción | Devuelve |
-|---|---|---|
-| `open` | abre o crea un archivo | descriptor o `-1` |
-| `write` | escribe bytes | cantidad escrita o `-1` |
-| `read` | lee bytes | cantidad leída, `0` al final, o `-1` |
-| `lseek` | mueve la posición | nueva posición o `-1` |
-| `close` | cierra el archivo | `0` o `-1` |
-
-Cuando una función falla, suele devolver `-1`. Linux guarda el motivo del último error en una variable llamada `errno`. La función `perror("mensaje")` muestra el mensaje indicado y la causa asociada a `errno`.
-
-Por ejemplo, si `open` no encuentra un archivo, este código:
-
-```c
-perror("No se pudo abrir el archivo");
-```
-
-puede mostrar:
-
-```text
-No se pudo abrir el archivo: No such file or directory
-```
-
-`perror` debe usarse inmediatamente después de detectar el error, antes de llamar a otra función que pueda cambiar `errno`.
-
----
-
-## 2. Preparación
+## 3. Preparación
 
 En una terminal Linux, abrí la carpeta de esta guía:
 
@@ -213,17 +236,64 @@ El orden en que se almacenan los bytes de un número se denomina **orden de byte
 
 ---
 
-### `O_TRUNC` y `O_APPEND`
+## 4. Abrir archivos con `open`
 
-Al abrir un archivo para escribir, dos opciones comunes determinan qué sucede con su contenido anterior:
+La llamada `open` abre un archivo y devuelve un **descriptor de archivo**: un número entero que se usa luego con `read`, `write`, `lseek` y `close`.
+
+```c
+int open(const char *ruta, int banderas, ...);
+```
+
+- `ruta` indica el archivo que se quiere abrir.
+- `banderas` especifica el acceso y otras opciones; se combinan con `|`.
+- El tercer argumento de permisos sólo se indica cuando se usa `O_CREAT`.
+- Si tiene éxito, devuelve un descriptor mayor o igual que cero; si falla, devuelve `-1`.
+
+Las banderas más frecuentes se agrupan en dos clases.
+
+Primero se elige **una sola** bandera de acceso:
+
+| Bandera | Acceso permitido |
+|---|---|
+| `O_RDONLY` | sólo lectura |
+| `O_WRONLY` | sólo escritura |
+| `O_RDWR` | lectura y escritura |
+
+Luego se pueden combinar opciones adicionales con `|`:
 
 | Opción | Efecto |
 |---|---|
+| `O_CREAT` | crea el archivo si no existe; por eso requiere el tercer argumento de permisos |
+| `O_EXCL` | junto con `O_CREAT`, hace que `open` falle si el archivo ya existe |
 | `O_TRUNC` | vacía el archivo al abrirlo; se empieza desde cero |
 | `O_APPEND` | conserva el contenido y hace que cada `write` se agregue al final |
 
-Por ejemplo, `O_WRONLY | O_CREAT | O_TRUNC` crea o reemplaza el contenido de un archivo. En cambio, `O_WRONLY | O_CREAT | O_APPEND` permite agregar nuevos datos sin borrar los anteriores.
-## 3. Ejemplo 1 — Guardar enteros
+Por ejemplo, `O_WRONLY | O_CREAT | O_TRUNC` crea o reemplaza el contenido de un archivo. En cambio, `O_WRONLY | O_CREAT | O_APPEND` permite agregar nuevos datos sin borrar los anteriores. Para crear un archivo nuevo sin sobrescribir uno existente se puede usar `O_WRONLY | O_CREAT | O_EXCL`.
+
+`O_TRUNC` y `O_APPEND` tienen sentido al escribir. No se deben combinar entre sí: una bandera vacía el archivo y la otra conserva su contenido para agregar datos al final.
+
+---
+## 5. Comprobar errores
+
+Cada llamada debe verificar su valor de retorno. La tabla inicial indica qué resultado representa un error en cada función: muchas devuelven `-1`, mientras que `read` devuelve `0` cuando llega al final de un archivo regular.
+
+Cuando una llamada falla, Linux guarda el motivo en `errno`. La función `perror` imprime un mensaje asociado a ese motivo en la salida de error:
+
+```c
+perror("No se pudo abrir el archivo");
+```
+
+Podría mostrar, por ejemplo:
+
+```text
+No se pudo abrir el archivo: No such file or directory
+```
+
+`perror` debe ejecutarse inmediatamente después de la llamada que falló, antes de invocar otra función que pudiera modificar `errno`.
+
+---
+
+## 6. Ejemplo 1 — Guardar enteros
 
 Archivo: [`01_guardar_enteros.c`](src/01_guardar_enteros.c)
 
@@ -237,7 +307,7 @@ El programa guarda los enteros `1` y `2` en `database.dat`. Cada llamada a `writ
 
 ---
 
-## 4. Ejemplo 2 — Guardar un carácter
+## 7. Ejemplo 2 — Guardar un carácter
 
 Archivo: [`02_guardar_caracter.c`](src/02_guardar_caracter.c)
 
@@ -251,7 +321,7 @@ Este programa reemplaza el contenido de `database.dat` por el carácter `'1'`. C
 
 ---
 
-## 5. Ejemplo 3 — Leer caracteres secuencialmente
+## 8. Ejemplo 3 — Leer caracteres secuencialmente
 
 Archivo: [`03_leer_caracteres.c`](src/03_leer_caracteres.c)
 
@@ -266,7 +336,7 @@ El programa intenta leer tres caracteres de `database.dat`. Cada `read` comienza
 > Para observar tres lecturas correctas, `database.dat` debe contener al menos tres caracteres. Podés crearlo, por ejemplo, con `printf "123" > database.dat`.
 
 ---
-## 6. Acceso secuencial, acceso directo y `lseek`
+## 9. Acceso secuencial, acceso directo y `lseek`
 
 Un archivo se puede recorrer de dos maneras.
 
@@ -341,7 +411,7 @@ En este caso, los bytes leídos se escriben a continuación de la zona que se ac
 
 ---
 
-## 7. Ejemplo 4 — Registros y búsqueda por identificador
+## 10. Ejemplo 4 — Registros y búsqueda por identificador
 
 Archivo: [`04_registros.c`](src/04_registros.c)
 
@@ -354,7 +424,7 @@ hexdump -C listado.bin
 El programa guarda tres registros en `listado.bin`, los lee completos y busca el registro cuyo identificador es `3`. La búsqueda usa acceso directo: calcula la posición `(id - 1) * sizeof(REGISTRO)` y la alcanza con `lseek` antes de leer.
 
 ---
-## 8. Ejemplo 5 — Crear y escribir
+## 11. Ejemplo 5 — Crear y escribir
 
 Archivo: [`05_guardar_texto.c`](src/05_guardar_texto.c)
 
@@ -384,7 +454,7 @@ La llamada `write(fd, mensaje, cantidad)` copia bytes desde la memoria al archiv
 
 ---
 
-## 9. Ejemplo 6 — Abrir y leer
+## 12. Ejemplo 6 — Abrir y leer
 
 Archivo: [`06_leer_texto.c`](src/06_leer_texto.c)
 
@@ -414,7 +484,7 @@ buffer[leidos] = '\0';
 
 ---
 
-## 10. Ejemplo 7 — Guardar y recuperar una estructura
+## 13. Ejemplo 7 — Guardar y recuperar una estructura
 
 Archivo: [`07_guardar_recuperar_estructura.c`](src/07_guardar_recuperar_estructura.c)
 
@@ -443,7 +513,7 @@ Después de `write`, el cursor está al final. El `lseek` es necesario antes de 
 
 ---
 
-## 11. Ejemplo 8 — Buscar y reemplazar un registro
+## 14. Ejemplo 8 — Buscar y reemplazar un registro
 
 Archivo: [`08_reemplazar_registro.c`](src/08_reemplazar_registro.c)
 
@@ -472,7 +542,7 @@ Archivo:  [1001, 6.0]  [1002, 10.0]  [1003, 8.0]
 
 ---
 
-## 12. Ejemplo 9 — `stdout`, `stderr` y `write`
+## 15. Ejemplo 9 — `stdout`, `stderr` y `write`
 
 Archivo: [`09_salidas_estandar.c`](src/09_salidas_estandar.c)
 
@@ -520,7 +590,7 @@ cat errores.txt
 El número `2` representa `stderr`; `>` redirige `stdout` y `2>` redirige `stderr`. Esta separación permite conservar los resultados de un programa sin mezclar mensajes de error o advertencias.
 
 ---
-## 13. Ejemplo 10 — Copiar un archivo completo
+## 16. Ejemplo 10 — Copiar un archivo completo
 
 Archivo: [`10_copiar_archivo.c`](src/10_copiar_archivo.c)
 
@@ -536,7 +606,7 @@ Este patrón es importante porque `read` y `write` pueden procesar menos bytes d
 
 ---
 
-## 14. Ejemplo 11 — Entrada estándar
+## 17. Ejemplo 11 — Entrada estándar
 
 Archivo: [`11_entrada_estandar.c`](src/11_entrada_estandar.c)
 
@@ -563,7 +633,7 @@ También se puede redirigir la entrada desde un archivo:
 
 ---
 
-## 15. Ejemplo 12 — Información de un archivo con `stat`
+## 18. Ejemplo 12 — Información de un archivo con `stat`
 
 Archivo: [`12_info_archivo.c`](src/12_info_archivo.c)
 
@@ -574,6 +644,40 @@ gcc -Wall 12_info_archivo.c -o 12_info_archivo
 
 `stat` consulta los metadatos de un archivo sin abrirlo para leer o escribir. El programa muestra dos de esos datos: el tamaño, mediante `st_size`, y los permisos, mediante `st_mode`.
 
+La función se declara en `<sys/stat.h>` y recibe la ruta del archivo junto con una estructura donde deja los datos:
+
+```c
+#include <sys/stat.h>
+
+int stat(const char *ruta, struct stat *info);
+```
+
+Devuelve `0` si tiene éxito y `-1` si ocurre un error. El programa declara:
+
+```c
+struct stat info;
+```
+
+y luego llama a `stat(argv[1], &info)`. De todos los campos disponibles, en este ejemplo se usan:
+
+| Campo | Qué informa |
+|---|---|
+| `info.st_size` | tamaño del archivo en bytes |
+| `info.st_mode` | tipo del recurso y permisos |
+
+`st_mode` no contiene solamente los permisos. La expresión `info.st_mode & 0777` conserva únicamente los nueve bits de permisos para mostrarlos en octal.
+
+También se puede comprobar el efecto de `chmod` con un archivo nuevo:
+
+```bash
+touch prueba.txt
+chmod 640 prueba.txt
+./12_info_archivo prueba.txt
+ls -l prueba.txt
+```
+
+El programa debe mostrar permisos `640`, mientras que `ls -l` los representa como `rw-r-----`.
+
 Compará el resultado con:
 
 ```bash
@@ -581,7 +685,7 @@ ls -l database.dat
 ```
 
 ---
-## 16. Errores frecuentes
+## 19. Errores frecuentes
 
 | Error | Consecuencia | Prevención |
 |---|---|---|
@@ -596,7 +700,7 @@ ls -l database.dat
 
 ---
 
-## 17. Actividad y autoevaluación
+## 20. Actividad y autoevaluación
 
 ### Práctica básica
 

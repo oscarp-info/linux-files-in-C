@@ -105,6 +105,8 @@ while (fgets(linea, sizeof(linea), fp) != NULL) {
 
 Si `fgets` devuelve `NULL`, se debe usar `feof(fp)` y `ferror(fp)` para distinguir final de archivo y error.
 
+La explicación general sobre el retorno de las funciones de lectura, `feof`, `ferror`, `errno`, `perror` y `strerror` se encuentra en la [guía de alto nivel con bloques](../02_alto_nivel_bloques/02_guia_archivos_alto_nivel_bloques.md).
+
 ---
 
 ## 5. Ejemplo 7 — Datos formateados con `fprintf` y `fscanf`
